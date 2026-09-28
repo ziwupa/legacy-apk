@@ -16,6 +16,13 @@ Latest release download:
 https://github.com/ziwupa/legacy-apk/releases/latest
 ```
 
+## Tutorial
+
+Step-by-step guide (what to tap, what to answer when the bot asks for data):
+
+- [Подробная инструкция (RU)](TUTORIAL_RU.md)
+- [Detailed tutorial (EN)](TUTORIAL_EN.md)
+
 Features:
 
 - Downloads and extracts Ubuntu Base rootfs.
