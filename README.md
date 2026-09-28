@@ -13,7 +13,7 @@ LegacyHost-by-ziwupa-debug.apk
 Latest release download:
 
 ```text
-https://github.com/ziwupa/ratko-apk/releases/latest
+https://github.com/ziwupa/legacy-apk/releases/latest
 ```
 
 Features:

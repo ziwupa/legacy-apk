@@ -95,8 +95,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean updateRequired = false;
     private static final String SUPPORT_URL = "https://t.me/ratkoapk";
     private static final String GITHUB_REPO_URL = "https://github.com/ziwupa/Legacy-NewGen";
-    private static final String GITHUB_RELEASES_URL = "https://github.com/ziwupa/ratko-apk/releases/latest";
-    private static final String REMOTE_BUILD_GRADLE_URL = "https://raw.githubusercontent.com/ziwupa/ratko-apk/main/app/build.gradle";
+    private static final String GITHUB_RELEASES_URL = "https://github.com/ziwupa/legacy-apk/releases/latest";
+    private static final String REMOTE_BUILD_GRADLE_URL = "https://raw.githubusercontent.com/ziwupa/legacy-apk/main/app/build.gradle";
     private static final String USERBOT_REPO_URL = "https://github.com/ziwupa/Legacy-NewGen.git";
     private static final String USERBOT_BRANCH = "beta";
     private static final String LEGACY_MIGRATION_MARKER = ".legacy_migration_complete";
