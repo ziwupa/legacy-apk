@@ -92,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
     private long lastCpuTotal = 0;
     private long lastCpuIdle = 0;
     private double lastCpuPercent = -1;
+    private long lastTopSampleMs = 0;
+    private double lastTopValue = -1;
     private String lastKeepAliveSignature = "";
     private String lastUpdateCheckLabel = "never";
     private boolean updateRequired = false;
@@ -1022,20 +1024,35 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private double sampleTopCpuPercent() {
+        // top with two screens takes ~1.5s; reuse a fresh-enough value.
+        if (System.currentTimeMillis() - lastTopSampleMs < 8000 && lastTopValue >= 0) {
+            lastCpuPercent = lastTopValue;
+            return lastCpuPercent;
+        }
         try {
-            Process process = new ProcessBuilder("/system/bin/top", "-b", "-n", "1").redirectErrorStream(true).start();
+            // Two screens: the first one carries since-start averages, only
+            // the second one carries instant values.
+            Process process = new ProcessBuilder("/system/bin/top", "-b", "-n", "2", "-d", "1").redirectErrorStream(true).start();
             double ownTotal = 0;
             boolean ownFound = false;
+            int screen = 0;
             try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     String lower = line.toLowerCase(java.util.Locale.US);
+                    if (lower.startsWith("tasks:")) {
+                        screen++;
+                        continue;
+                    }
+                    if (screen < 2) continue;
                     // System-wide summary line; on strict devices it always
                     // reports full idle because foreign processes are hidden.
                     if (lower.contains("%cpu") && lower.contains("%idle")) {
                         double parsed = parseTopSummaryCpu(line);
                         if (parsed > 0) {
                             lastCpuPercent = parsed;
+                            lastTopValue = parsed;
+                            lastTopSampleMs = System.currentTimeMillis();
                             return lastCpuPercent;
                         }
                         continue;
@@ -1061,6 +1078,8 @@ public class MainActivity extends AppCompatActivity {
             process.waitFor();
             if (ownFound) {
                 lastCpuPercent = Math.max(0, Math.min(100, ownTotal));
+                lastTopValue = lastCpuPercent;
+                lastTopSampleMs = System.currentTimeMillis();
                 return lastCpuPercent;
             }
         } catch (Exception ignored) {}
