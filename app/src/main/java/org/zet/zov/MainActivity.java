@@ -1474,7 +1474,7 @@ public class MainActivity extends AppCompatActivity {
         String path = userbotPath();
         startProcess("export HOME=/root PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color DEBIAN_FRONTEND=noninteractive && " +
             "dpkg --remove --force-remove-reinstreq --force-depends dbus libpam-systemd systemd-resolved networkd-dispatcher dbus-user-session dconf-service dconf-gsettings-backend libgtk-3-common gsettings-desktop-schemas libgtk-3-bin libgtk-3-0t64 at-spi2-core libdecor-0-plugin-1-gtk 2>/dev/null || true && " +
-            "apt update && apt install -y --no-install-recommends ca-certificates coreutils git python3 python3-pip python3-venv build-essential libcairo2 libmagic1 openssl && " +
+            "apt update && apt install -y --no-install-recommends ca-certificates coreutils git python3 python3-pip python3-venv build-essential libcairo2 libmagic1 openssl procps && " +
             "cd /root && if [ ! -d " + dirName + " ]; then git clone -b " + USERBOT_BRANCH + " " + USERBOT_REPO_URL + " " + dirName + "; fi && " +
             "cd " + path + " && " + resetLegacyGitCommand() + " && " +
             "python3 -m venv .venv && " +
