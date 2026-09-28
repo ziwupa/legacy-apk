@@ -1013,7 +1013,7 @@ public class MainActivity extends AppCompatActivity {
             long idleDelta = idleAll - lastCpuIdle;
             lastCpuTotal = total;
             lastCpuIdle = idleAll;
-            if (totalDelta <= 0) return lastCpuPercent;
+            if (totalDelta <= 0) return sampleTopCpuPercent();
             lastCpuPercent = Math.max(0, Math.min(100, (totalDelta - idleDelta) * 100.0 / totalDelta));
             return lastCpuPercent;
         } catch (Exception ignored) {
@@ -1028,18 +1028,38 @@ public class MainActivity extends AppCompatActivity {
                 String line;
                 while ((line = br.readLine()) != null) {
                     String lower = line.toLowerCase(java.util.Locale.US);
-                    if (lower.contains("%cpu") || lower.startsWith("cpu") || lower.contains(" cpu ")) {
-                        double parsed = parseFirstPercentNumber(line);
-                        if (parsed >= 0) {
-                            lastCpuPercent = Math.max(0, Math.min(100, parsed));
-                            return lastCpuPercent;
-                        }
+                    // Only the summary line carries system-wide counters;
+                    // per-process lines must not be mistaken for it.
+                    if (!lower.contains("%cpu") || !lower.contains("%idle")) continue;
+                    double parsed = parseTopSummaryCpu(line);
+                    if (parsed >= 0) {
+                        lastCpuPercent = parsed;
+                        return lastCpuPercent;
                     }
                 }
             }
             process.waitFor();
         } catch (Exception ignored) {}
         return lastCpuPercent;
+    }
+
+    private double parseTopSummaryCpu(String line) {
+        // toybox batch summary looks like:
+        // 800%cpu  87%user  13%nice  87%sys 587%idle   0%iow  23%irq   3%sirq   0%host
+        // busy share = (total - idle - iowait) / total
+        try {
+            java.util.regex.Matcher total = java.util.regex.Pattern.compile("([\\d.]+)%cpu").matcher(line);
+            java.util.regex.Matcher idle = java.util.regex.Pattern.compile("([\\d.]+)%idle").matcher(line);
+            java.util.regex.Matcher iow = java.util.regex.Pattern.compile("([\\d.]+)%iow").matcher(line);
+            if (!total.find() || !idle.find()) return -1;
+            double totalVal = Double.parseDouble(total.group(1));
+            double idleVal = Double.parseDouble(idle.group(1));
+            double iowVal = iow.find() ? Double.parseDouble(iow.group(1)) : 0;
+            if (totalVal <= 0) return -1;
+            return Math.max(0, Math.min(100, (totalVal - idleVal - iowVal) * 100.0 / totalVal));
+        } catch (Exception ignored) {
+            return -1;
+        }
     }
 
     private double parseFirstPercentNumber(String line) {
