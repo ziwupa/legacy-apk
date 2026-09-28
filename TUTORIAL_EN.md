@@ -73,7 +73,7 @@ or
 +380971234567
 ```
 
-The leading `+` is required.
+The leading `+` is optional — the main thing is the international format with the country code.
 
 ### The Telegram login code
 
