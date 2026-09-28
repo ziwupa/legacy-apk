@@ -103,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String USERBOT_BRANCH = "beta";
     private static final String LEGACY_MIGRATION_MARKER = ".legacy_migration_complete";
     private static final int MAX_LOG_CHARS = 90000;
-    private static final String PATCH_MARKER = ".legacyapk_patch_v1";
+    private static final String PATCH_MARKER = ".legacyapk_patch_v2";
 
     private static final String UBUNTU_BASE = "https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/";
 
@@ -1357,6 +1357,10 @@ public class MainActivity extends AppCompatActivity {
 
     private String[] prootCommand(String command) {
         ArrayList<String> args = new ArrayList<>();
+        // Detach the guest tree into its own session/process group. Without
+        // this, a killpg() from inside (e.g. userbot restart) would deliver
+        // the signal to our own process too and take the whole app down.
+        args.add("/system/bin/setsid");
         args.add(supportDir.getAbsolutePath() + "/proot");
         args.add("-r");
         args.add(rootfsDir.getAbsolutePath());
@@ -1676,26 +1680,12 @@ public class MainActivity extends AppCompatActivity {
     private String legacyApkPatchCommand() {
         return "git checkout -- legacy/langpacks/*.yml 2>/dev/null || true; " +
             "if [ ! -f " + PATCH_MARKER + " ]; then " +
-            hotfixRestartCommand() + " >hotfix_restart.log 2>&1 && " +
             hotfixRestoreHelpPingCommand() + " >hotfix_restore_help_ping.log 2>&1 && " +
             "touch " + PATCH_MARKER + "; fi";
     }
 
     private String hotfixRestoreHelpPingCommand() {
         return "(git checkout -- legacy/modules/help.py legacy/modules/test.py 2>/dev/null || true)";
-    }
-
-    private String hotfixRestartCommand() {
-        return "cat > hotfix_restart.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "p = Path('legacy/_internal.py')\n" +
-            "s = p.read_text()\n" +
-            "needle = 'def restart():\\n'\n" +
-            "insert = 'def restart():\\n    if os.environ.get(\"LEGACYAPK\") == \"1\":\\n        logging.getLogger().setLevel(logging.CRITICAL)\\n        print(\"Restarting...\")\\n        os.execl(sys.executable, sys.executable, \"-m\", \"legacy\", *sys.argv[1:])\\n\\n'\n" +
-            "if 'os.environ.get(\"LEGACYAPK\") == \"1\"' not in s and needle in s:\n    s = s.replace(needle, insert, 1)\n" +
-            "p.write_text(s)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_restart.py";
     }
 
     private void startProcess(String command, boolean interactive) {
