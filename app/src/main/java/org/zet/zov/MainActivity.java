@@ -1042,8 +1042,11 @@ public class MainActivity extends AppCompatActivity {
                     }
                     // Per-process line, e.g.
                     // 23439 u0_a373  10 -10  17G 220M 145M S  3.8   2.8  0:08.54 org.zet.zov
-                    // Column header S[%CPU] must not match.
+                    // Column header S[%CPU] must not match, and the top
+                    // process itself is skipped: it only just started, so
+                    // its own cumulative share would inflate every sample.
                     if (lower.contains("[%cpu]")) continue;
+                    if (line.contains("top -b")) continue;
                     java.util.regex.Matcher m = java.util.regex.Pattern.compile(
                         "\\s[RDSTZtWXx]\\s+([\\d.]+)\\s"
                     ).matcher(line);
