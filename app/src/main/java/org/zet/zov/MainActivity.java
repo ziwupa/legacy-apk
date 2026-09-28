@@ -1024,21 +1024,42 @@ public class MainActivity extends AppCompatActivity {
     private double sampleTopCpuPercent() {
         try {
             Process process = new ProcessBuilder("/system/bin/top", "-b", "-n", "1").redirectErrorStream(true).start();
+            double ownTotal = 0;
+            boolean ownFound = false;
             try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     String lower = line.toLowerCase(java.util.Locale.US);
-                    // Only the summary line carries system-wide counters;
-                    // per-process lines must not be mistaken for it.
-                    if (!lower.contains("%cpu") || !lower.contains("%idle")) continue;
-                    double parsed = parseTopSummaryCpu(line);
-                    if (parsed >= 0) {
-                        lastCpuPercent = parsed;
-                        return lastCpuPercent;
+                    // System-wide summary line; on strict devices it always
+                    // reports full idle because foreign processes are hidden.
+                    if (lower.contains("%cpu") && lower.contains("%idle")) {
+                        double parsed = parseTopSummaryCpu(line);
+                        if (parsed > 0) {
+                            lastCpuPercent = parsed;
+                            return lastCpuPercent;
+                        }
+                        continue;
+                    }
+                    // Per-process line, e.g.
+                    // 23439 u0_a373  10 -10  17G 220M 145M S  3.8   2.8  0:08.54 org.zet.zov
+                    // Column header S[%CPU] must not match.
+                    if (lower.contains("[%cpu]")) continue;
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                        "\\s[RDSTZtWXx]\\s+([\\d.]+)\\s"
+                    ).matcher(line);
+                    if (m.find()) {
+                        try {
+                            ownTotal += Double.parseDouble(m.group(1));
+                            ownFound = true;
+                        } catch (Exception ignored) {}
                     }
                 }
             }
             process.waitFor();
+            if (ownFound) {
+                lastCpuPercent = Math.max(0, Math.min(100, ownTotal));
+                return lastCpuPercent;
+            }
         } catch (Exception ignored) {}
         return lastCpuPercent;
     }
