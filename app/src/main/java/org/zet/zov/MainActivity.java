@@ -123,19 +123,17 @@ public class MainActivity extends AppCompatActivity {
         logScroll = findViewById(R.id.logScroll);
         inputField = findViewById(R.id.inputField);
         final View inputBar = findViewById(R.id.inputBar);
-        final int inputBarBaseBottom = inputBar.getPaddingBottom();
+        final android.widget.LinearLayout.LayoutParams inputBarParams =
+            (android.widget.LinearLayout.LayoutParams) inputBar.getLayoutParams();
+        final int inputBarBaseMargin = inputBarParams.bottomMargin;
         // Some devices don't shrink the layout for the keyboard despite
-        // adjustResize, leaving the input row underneath it. Lift the input
-        // bar by the visible IME height instead; when resize already worked
-        // the inset is zero and nothing changes.
+        // adjustResize, leaving the input row underneath it. Lift the whole
+        // bar above the keyboard via bottom margin instead; when resize
+        // already worked the inset is zero and nothing changes.
         ViewCompat.setOnApplyWindowInsetsListener(inputBar, (v, insets) -> {
             int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
-            v.setPadding(
-                v.getPaddingLeft(),
-                v.getPaddingTop(),
-                v.getPaddingRight(),
-                inputBarBaseBottom + Math.max(imeBottom, 0)
-            );
+            inputBarParams.bottomMargin = inputBarBaseMargin + Math.max(imeBottom, 0);
+            inputBar.setLayoutParams(inputBarParams);
             if (imeBottom > 0) scrollToBottomSoon();
             return insets;
         });
