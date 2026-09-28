@@ -12,7 +12,7 @@ import android.os.IBinder;
 import androidx.core.app.NotificationCompat;
 
 public class HostKeepAliveService extends Service {
-    public static final String CHANNEL_ID = "heroku_host_keepalive";
+    public static final String CHANNEL_ID = "legacy_host_keepalive";
     public static final int NOTIFICATION_ID = 1001;
     public static final String EXTRA_TITLE = "title";
     public static final String EXTRA_TEXT = "text";
@@ -27,7 +27,7 @@ public class HostKeepAliveService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String title = intent != null ? intent.getStringExtra(EXTRA_TITLE) : null;
         String text = intent != null ? intent.getStringExtra(EXTRA_TEXT) : null;
-        if (title == null || title.isEmpty()) title = "Heroku Host keepalive";
+        if (title == null || title.isEmpty()) title = "Legacy Host keepalive";
         if (text == null || text.isEmpty()) text = "Background runtime protection is active";
         startForeground(NOTIFICATION_ID, buildNotification(title, text));
         return START_STICKY;
@@ -74,10 +74,10 @@ public class HostKeepAliveService extends Service {
         if (manager == null) return;
         NotificationChannel channel = new NotificationChannel(
             CHANNEL_ID,
-            "Heroku Host Keepalive",
+            "Legacy Host Keepalive",
             NotificationManager.IMPORTANCE_LOW
         );
-        channel.setDescription("Protects active Heroku Host runtime in background");
+        channel.setDescription("Protects active Legacy Host runtime in background");
         manager.createNotificationChannel(channel);
     }
 }

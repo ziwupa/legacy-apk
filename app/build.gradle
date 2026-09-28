@@ -10,8 +10,8 @@ android {
         applicationId "org.zet.zov"
         minSdk 24
         targetSdk 28
-        versionCode 44
-        versionName "1.5.3"
+        versionCode 45
+        versionName "1.6.0"
     }
 
     buildTypes {

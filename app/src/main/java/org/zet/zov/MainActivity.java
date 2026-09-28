@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private ScrollView logScroll;
     private EditText inputField;
     private Button followOutputBtn;
-    private Button ratkoActionBtn;
+    private Button legacyActionBtn;
     private Spinner sessionSpinner;
     private Spinner terminalSpinner;
     private View actionPanel;
@@ -94,13 +94,14 @@ public class MainActivity extends AppCompatActivity {
     private String lastUpdateCheckLabel = "never";
     private boolean updateRequired = false;
     private static final String SUPPORT_URL = "https://t.me/ratkoapk";
-    private static final String GITHUB_REPO_URL = "https://github.com/unsidogandon/ratko";
+    private static final String GITHUB_REPO_URL = "https://github.com/ziwupa/Legacy-NewGen";
     private static final String GITHUB_RELEASES_URL = "https://github.com/ziwupa/ratko-apk/releases/latest";
     private static final String REMOTE_BUILD_GRADLE_URL = "https://raw.githubusercontent.com/ziwupa/ratko-apk/main/app/build.gradle";
-    private static final String USERBOT_REPO_URL = "https://github.com/unsidogandon/ratko.git";
-    private static final String RATKO_MIGRATION_MARKER = ".ratko_migration_complete";
+    private static final String USERBOT_REPO_URL = "https://github.com/ziwupa/Legacy-NewGen.git";
+    private static final String USERBOT_BRANCH = "beta";
+    private static final String LEGACY_MIGRATION_MARKER = ".legacy_migration_complete";
     private static final int MAX_LOG_CHARS = 90000;
-    private static final String PATCH_MARKER = ".ratkoapk_patch_v38";
+    private static final String PATCH_MARKER = ".legacyapk_patch_v1";
 
     private static final String UBUNTU_BASE = "https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/";
 
@@ -125,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         Button menuToggleBtn = findViewById(R.id.menuToggleBtn);
         Button menuCloseBtn = findViewById(R.id.menuCloseBtn);
         Button installLinuxBtn = findViewById(R.id.installLinuxBtn);
-        ratkoActionBtn = findViewById(R.id.installHerokuBtn);
+        legacyActionBtn = findViewById(R.id.installHerokuBtn);
         Button startBotBtn = findViewById(R.id.startBotBtn);
         Button terminalBtn = findViewById(R.id.terminalBtn);
         Button stopBtn = findViewById(R.id.stopBtn);
@@ -134,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         Button addSessionBtn = findViewById(R.id.addSessionBtn);
         Button checkStatusBtn = findViewById(R.id.checkStatusBtn);
         Button repairBtn = findViewById(R.id.repairBtn);
-        Button updateHerokuBtn = findViewById(R.id.updateHerokuBtn);
+        Button updateUserbotBtn = findViewById(R.id.updateHerokuBtn);
         Button reapplyPatchesBtn = findViewById(R.id.reapplyPatchesBtn);
         Button checkUpdatesBtn = findViewById(R.id.checkUpdatesBtn);
         Button addTerminalBtn = findViewById(R.id.addTerminalBtn);
@@ -162,11 +163,11 @@ public class MainActivity extends AppCompatActivity {
         menuToggleBtn.setOnClickListener(v -> toggleMenu());
         menuCloseBtn.setOnClickListener(v -> closeMenu());
         installLinuxBtn.setOnClickListener(v -> runTask(this::installLinux));
-        ratkoActionBtn.setOnClickListener(v -> {
-            if (needsRatkoMigration()) {
-                updateToRatko(ratkoActionBtn);
+        legacyActionBtn.setOnClickListener(v -> {
+            if (needsLegacyMigration()) {
+                updateToLegacy(legacyActionBtn);
             } else {
-                runTask(this::installHeroku);
+                runTask(this::installUserbot);
             }
         });
         startBotBtn.setOnClickListener(v -> startInteractiveBot());
@@ -177,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
         addSessionBtn.setOnClickListener(v -> askSessionName());
         checkStatusBtn.setOnClickListener(v -> runDiagnostics());
         repairBtn.setOnClickListener(v -> runTask(this::repairRuntime));
-        updateHerokuBtn.setOnClickListener(v -> updateHeroku());
+        updateUserbotBtn.setOnClickListener(v -> updateUserbot());
         reapplyPatchesBtn.setOnClickListener(v -> reapplyPatches());
         checkUpdatesBtn.setOnClickListener(v -> {
             log("[UPDATE] Manual check requested");
@@ -197,52 +198,52 @@ public class MainActivity extends AppCompatActivity {
         });
         updateVersionInfoText();
 
-        log("[INFO] Ratko Host ready");
+        log("[INFO] Legacy Host ready");
         log("[INFO] Account profile: " + selectedSessionName());
-        log("[INFO] Step 1: LINUX, then RATKO, then START");
+        log("[INFO] Step 1: LINUX, then LEGACY, then START");
         checkForUpdatesAsync();
         refreshProcessUiState();
-        updateRatkoMigrationButton(ratkoActionBtn);
+        updateLegacyMigrationButton(legacyActionBtn);
     }
 
-    private boolean isRatkoMigrationComplete() {
-        return new File(rootfsDir, "root/" + herokuDirName() + "/" + RATKO_MIGRATION_MARKER).exists();
+    private boolean isLegacyMigrationComplete() {
+        return new File(rootfsDir, "root/" + userbotDirName() + "/" + LEGACY_MIGRATION_MARKER).exists();
     }
 
-    private boolean needsRatkoMigration() {
-        File dir = herokuRootfsDir();
-        return dir.exists() && !isRatkoMigrationComplete();
+    private boolean needsLegacyMigration() {
+        File dir = userbotRootfsDir();
+        return dir.exists() && !isLegacyMigrationComplete();
     }
 
-    private void updateRatkoMigrationButton(Button button) {
+    private void updateLegacyMigrationButton(Button button) {
         if (button == null) return;
         button.setVisibility(View.VISIBLE);
-        button.setText(needsRatkoMigration() ? "2. UPDATE TO RATKO" : "2. Ratko");
+        button.setText(needsLegacyMigration() ? "2. UPDATE TO LEGACY" : "2. Legacy");
     }
 
-    private void updateToRatko(Button button) {
+    private void updateToLegacy(Button button) {
         closeMenu();
-        migrateLegacyInstall();
-        String path = herokuPath();
-        File dir = herokuRootfsDir();
+        migrateUserbotInstall();
+        String path = userbotPath();
+        File dir = userbotRootfsDir();
         if (!dir.exists()) {
             log("[ERROR] Install Linux and the existing userbot first.");
             return;
         }
         startProcess("export HOME=/root PATH=" + path + "/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color PYTHONUNBUFFERED=1 && cd " + path + " && " +
-            resetRatkoGitCommand() + " && " +
+            resetLegacyGitCommand() + " && " +
             ".venv/bin/python -m pip install -r requirements.txt && " +
-            "touch " + RATKO_MIGRATION_MARKER,
-            false, false, false, "UPDATE TO RATKO", false, () -> updateRatkoMigrationButton(button));
+            "touch " + LEGACY_MIGRATION_MARKER,
+            false, false, false, "UPDATE TO LEGACY", false, () -> updateLegacyMigrationButton(button));
     }
 
-    private String resetRatkoGitCommand() {
+    private String resetLegacyGitCommand() {
         // Move only broken Git metadata aside. Sessions, databases, venv and modules stay intact.
         return "if [ -d .git ]; then mv .git .git.corrupt.$(date +%s) || exit 1; fi && git init && " +
             "git remote add origin " + USERBOT_REPO_URL + " && " +
-            "git fetch --depth=1 origin main:refs/remotes/origin/main && " +
-            "git reset --hard origin/main && git checkout -B main origin/main && " +
-            "git branch --set-upstream-to=origin/main main";
+            "git fetch --depth=1 origin " + USERBOT_BRANCH + ":refs/remotes/origin/" + USERBOT_BRANCH + " && " +
+            "git reset --hard origin/" + USERBOT_BRANCH + " && git checkout -B " + USERBOT_BRANCH + " origin/" + USERBOT_BRANCH + " && " +
+            "git branch --set-upstream-to=origin/" + USERBOT_BRANCH + " " + USERBOT_BRANCH;
     }
 
     @Override
@@ -316,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
             if (wakeLock != null && wakeLock.isHeld()) return;
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
             if (pm == null) return;
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RatkoHost:InstallWakeLock");
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "LegacyHost:InstallWakeLock");
             wakeLock.setReferenceCounted(false);
             wakeLock.acquire(60L * 60L * 1000L);
         } catch (Exception e) {
@@ -339,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
         if (statusText == null) return;
         runOnUiThread(() -> {
             String linux = isRootfsValid() ? "Linux OK" : "Linux missing";
-            String heroku = isHerokuInstalledForSelectedAccount() ? "Ratko OK" : "Ratko missing";
+            String userbot = isUserbotInstalledForSelectedAccount() ? "Legacy OK" : "Legacy missing";
             String bot = currentProcess != null && currentProcess.isAlive() ? "running" : (botSupervisorActive ? "watching" : "stopped");
             String terminal = selectedTerminalName();
             String terminalState = isTerminalAlive(terminal) ? "on" : "off";
@@ -347,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
             statusText.setText(
                 "account: " + selectedSessionName()
                     + " | " + linux
-                    + " | " + heroku
+                    + " | " + userbot
                     + " | bot: " + bot
                     + " | terms: " + activeTerminalCount()
                     + " | " + terminal + ": " + terminalState
@@ -363,7 +364,7 @@ public class MainActivity extends AppCompatActivity {
         updateHostModeText();
         syncForcedUpdateUi();
         syncKeepAliveState();
-        updateRatkoMigrationButton(ratkoActionBtn);
+        updateLegacyMigrationButton(legacyActionBtn);
     }
 
     private void syncForcedUpdateUi() {
@@ -450,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
                 showForcedUpdate("", false);
                 log("[UPDATE] Check failed: " + e.getMessage());
             }
-        }, "RatkoHostVersionCheck").start();
+        }, "LegacyHostVersionCheck").start();
     }
 
     private String fetchText(String url) throws Exception {
@@ -531,7 +532,7 @@ public class MainActivity extends AppCompatActivity {
             acquireWakeLock();
             acquireWifiLock();
             Intent intent = new Intent(this, HostKeepAliveService.class)
-                .putExtra(HostKeepAliveService.EXTRA_TITLE, "Ratko Host keepalive")
+                .putExtra(HostKeepAliveService.EXTRA_TITLE, "Legacy Host keepalive")
                 .putExtra(HostKeepAliveService.EXTRA_TEXT, summary);
             ContextCompat.startForegroundService(this, intent);
         } else {
@@ -554,7 +555,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 } catch (Exception ignored) {}
             }
-        }, "RatkoHostKeepAliveWatchdog");
+        }, "LegacyHostKeepAliveWatchdog");
         keepAliveWatchdogThread.setDaemon(true);
         keepAliveWatchdogThread.start();
     }
@@ -564,7 +565,7 @@ public class MainActivity extends AppCompatActivity {
             if (wifiLock != null && wifiLock.isHeld()) return;
             WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
             if (wifiManager == null) return;
-            wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "RatkoHost:WifiLock");
+            wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "LegacyHost:WifiLock");
             wifiLock.setReferenceCounted(false);
             wifiLock.acquire();
         } catch (Exception e) {
@@ -801,43 +802,52 @@ public class MainActivity extends AppCompatActivity {
         return out.toString();
     }
 
-    private String herokuDirName() {
+    private String userbotDirName() {
+        String profile = selectedSessionName();
+        return profile.equals("main") ? "Legacy" : "Legacy-" + profile;
+    }
+
+    private String previousUserbotDirName() {
         String profile = selectedSessionName();
         return profile.equals("main") ? "Ratko" : "Ratko-" + profile;
     }
 
-    private String legacyHerokuDirName() {
+    private String ancientUserbotDirName() {
         String profile = selectedSessionName();
         return profile.equals("main") ? "Heroku" : "Heroku-" + profile;
     }
 
-    private String herokuPath() {
-        return "/root/" + herokuDirName();
+    private String userbotPath() {
+        return "/root/" + userbotDirName();
     }
 
-    private File herokuRootfsDir() {
-        return new File(rootfsDir, "root/" + herokuDirName());
+    private File userbotRootfsDir() {
+        return new File(rootfsDir, "root/" + userbotDirName());
     }
 
-    private void migrateLegacyInstall() {
-        File current = herokuRootfsDir();
-        File legacy = new File(rootfsDir, "root/" + legacyHerokuDirName());
-        if (current.exists() || !legacy.exists()) return;
-        File parent = current.getParentFile();
-        if (parent != null) parent.mkdirs();
-        if (legacy.renameTo(current)) {
-            log("[MIGRATE] Preserved existing userbot data: " + legacy.getName() + " -> " + current.getName());
-        } else {
-            log("[WARN] Could not rename legacy userbot directory. Existing Heroku data was left untouched.");
+    private void migrateUserbotInstall() {
+        File current = userbotRootfsDir();
+        if (current.exists()) return;
+        for (String oldName : new String[]{previousUserbotDirName(), ancientUserbotDirName()}) {
+            File legacy = new File(rootfsDir, "root/" + oldName);
+            if (!legacy.exists()) continue;
+            File parent = current.getParentFile();
+            if (parent != null) parent.mkdirs();
+            if (legacy.renameTo(current)) {
+                log("[MIGRATE] Preserved existing userbot data: " + legacy.getName() + " -> " + current.getName());
+            } else {
+                log("[WARN] Could not rename legacy userbot directory. Existing userbot data was left untouched.");
+            }
+            return;
         }
     }
 
-    private boolean isHerokuInstalledForSelectedAccount() {
-        migrateLegacyInstall();
-        File dir = herokuRootfsDir();
-        return new File(dir, "heroku").exists()
+    private boolean isUserbotInstalledForSelectedAccount() {
+        migrateUserbotInstall();
+        File dir = userbotRootfsDir();
+        return new File(dir, "legacy").exists()
             && fileExistsOrSymlink(new File(dir, ".venv/bin/python"))
-                || (new File(dir, "heroku").exists() && fileExistsOrSymlink(new File(dir, ".venv/bin/python3")));
+                || (new File(dir, "legacy").exists() && fileExistsOrSymlink(new File(dir, ".venv/bin/python3")));
     }
 
     private boolean fileExistsOrSymlink(File file) {
@@ -886,7 +896,7 @@ public class MainActivity extends AppCompatActivity {
             saveSelectedSessionName(profile);
             waitingForSessionName = false;
             log("[OK] Account profile selected: " + profile);
-            log("[INFO] For another Telegram account press RATKO, then START and login with its phone.");
+            log("[INFO] For another Telegram account press LEGACY, then START and login with its phone.");
             refreshProcessUiState();
         } catch (Exception e) {
             log("[ERROR] Failed to save session: " + e.getMessage());
@@ -951,7 +961,7 @@ public class MainActivity extends AppCompatActivity {
         String cpuPercent = cpu >= 0 ? String.format(java.util.Locale.US, "%.1f%%", cpu) : "N/A";
         int cores = Runtime.getRuntime().availableProcessors();
         String json = "{"
-            + "\"host\":\"ratkoapk\"," 
+            + "\"host\":\"legacyapk\"," 
             + "\"cpu_usage\":\"" + cpuPercent + "\"," 
             + "\"ram_usage\":\"" + usedMb + " MB\"," 
             + "\"cpu\":\"" + cores + " (" + cores + ") core(-s); " + cpuPercent + " total\"," 
@@ -1091,7 +1101,7 @@ public class MainActivity extends AppCompatActivity {
             if (!testProotRuntime()) throw new IllegalStateException("proot runtime test failed after reinstall");
         }
 
-            log("[DONE] Linux installed. Now press INSTALL RATKO");
+            log("[DONE] Linux installed. Now press INSTALL LEGACY");
     }
 
     private void installSupportAssets() throws Exception {
@@ -1439,21 +1449,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void installHeroku() {
-        migrateLegacyInstall();
-        String dirName = herokuDirName();
-        String path = herokuPath();
+    private void installUserbot() {
+        migrateUserbotInstall();
+        String dirName = userbotDirName();
+        String path = userbotPath();
         startProcess("export HOME=/root PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color DEBIAN_FRONTEND=noninteractive && " +
             "dpkg --remove --force-remove-reinstreq --force-depends dbus libpam-systemd systemd-resolved networkd-dispatcher dbus-user-session dconf-service dconf-gsettings-backend libgtk-3-common gsettings-desktop-schemas libgtk-3-bin libgtk-3-0t64 at-spi2-core libdecor-0-plugin-1-gtk 2>/dev/null || true && " +
             "apt update && apt install -y --no-install-recommends ca-certificates coreutils git python3 python3-pip python3-venv build-essential libcairo2 libmagic1 openssl && " +
-            "cd /root && if [ ! -d " + dirName + " ]; then git clone " + USERBOT_REPO_URL + " " + dirName + "; fi && " +
-            "cd " + path + " && " + resetRatkoGitCommand() + " && " +
+            "cd /root && if [ ! -d " + dirName + " ]; then git clone -b " + USERBOT_BRANCH + " " + USERBOT_REPO_URL + " " + dirName + "; fi && " +
+            "cd " + path + " && " + resetLegacyGitCommand() + " && " +
             "python3 -m venv .venv && " +
             ".venv/bin/python -m pip install --upgrade pip wheel setuptools && " +
             ".venv/bin/python -m pip install -r requirements.txt && " +
             ".venv/bin/python -c \"import hashlib; open('.requirements_hash','w').write(hashlib.sha256(open('requirements.txt','rb').read()).hexdigest())\" && " +
-            "touch " + RATKO_MIGRATION_MARKER,
-            false, true, false, "INSTALL RATKO", false, () -> updateRatkoMigrationButton(ratkoActionBtn));
+            "touch " + LEGACY_MIGRATION_MARKER,
+            false, true, false, "INSTALL LEGACY", false, () -> updateLegacyMigrationButton(legacyActionBtn));
     }
 
     private void runDiagnostics() {
@@ -1461,12 +1471,12 @@ public class MainActivity extends AppCompatActivity {
         runTask(() -> {
             refreshProcessUiState();
             log("[DIAG] Account: " + selectedSessionName());
-            log("[DIAG] Ratko path: " + herokuPath());
+            log("[DIAG] Legacy path: " + userbotPath());
             log("[DIAG] Android ABI: " + Build.SUPPORTED_ABIS[0]);
             log("[DIAG] Linux rootfs: " + (isRootfsValid() ? "OK" : "missing/broken"));
             log("[DIAG] Support assets: " + (new File(supportDir, "proot").exists() ? "OK" : "missing"));
-            log("[DIAG] Ratko repo: " + (new File(herokuRootfsDir(), "heroku").exists() ? "OK" : "missing"));
-            log("[DIAG] venv python: " + (fileExistsOrSymlink(new File(herokuRootfsDir(), ".venv/bin/python")) ? "OK" : "missing"));
+            log("[DIAG] Legacy repo: " + (new File(userbotRootfsDir(), "legacy").exists() ? "OK" : "missing"));
+            log("[DIAG] venv python: " + (fileExistsOrSymlink(new File(userbotRootfsDir(), ".venv/bin/python")) ? "OK" : "missing"));
             log("[DIAG] inline bot: " + (isInlineBotUsernameValid(getInlineBotUsername()) ? "@" + getInlineBotUsername() : "not set"));
             log("[DIAG] bot process: " + ((currentProcess != null && currentProcess.isAlive()) ? "running" : "stopped"));
             try {
@@ -1492,30 +1502,30 @@ public class MainActivity extends AppCompatActivity {
         refreshProcessUiState();
     }
 
-    private void updateHeroku() {
+    private void updateUserbot() {
         closeMenu();
-        migrateLegacyInstall();
-        String path = herokuPath();
-        if (!isHerokuInstalledForSelectedAccount()) {
-            log("[ERROR] Heroku is not installed for account profile: " + selectedSessionName());
+        migrateUserbotInstall();
+        String path = userbotPath();
+        if (!isUserbotInstalledForSelectedAccount()) {
+            log("[ERROR] Legacy is not installed for account profile: " + selectedSessionName());
             return;
         }
         startProcess("export HOME=/root PATH=" + path + "/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color PYTHONUNBUFFERED=1 && cd " + path + " && " +
-            resetRatkoGitCommand() + " && " +
+            resetLegacyGitCommand() + " && " +
             ".venv/bin/python -m pip install -r requirements.txt && " +
             "rm -f " + PATCH_MARKER + " && " +
-            herokuApkPatchCommand(), false, false, false, "UPDATE RATKO");
+            legacyApkPatchCommand(), false, false, false, "UPDATE LEGACY");
     }
 
     private void reapplyPatches() {
         closeMenu();
-        String path = herokuPath();
-        if (!isHerokuInstalledForSelectedAccount()) {
-            log("[ERROR] Heroku is not installed for account profile: " + selectedSessionName());
+        String path = userbotPath();
+        if (!isUserbotInstalledForSelectedAccount()) {
+            log("[ERROR] Legacy is not installed for account profile: " + selectedSessionName());
             return;
         }
         startProcess("export HOME=/root PATH=" + path + "/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color PYTHONUNBUFFERED=1 && cd " + path + " && " +
-            "rm -f " + PATCH_MARKER + " && " + herokuApkPatchCommand(), false, false, false, "REAPPLY PATCHES");
+            "rm -f " + PATCH_MARKER + " && " + legacyApkPatchCommand(), false, false, false, "REAPPLY PATCHES");
     }
 
     private void startInteractiveBot() {
@@ -1526,9 +1536,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        if (!isHerokuInstalledForSelectedAccount()) {
-            log("[ERROR] Heroku is not installed for account profile: " + selectedSessionName());
-            log("[INFO] Press INSTALL RATKO first for this account profile.");
+        if (!isUserbotInstalledForSelectedAccount()) {
+            log("[ERROR] Legacy is not installed for account profile: " + selectedSessionName());
+            log("[INFO] Press INSTALL LEGACY first for this account profile.");
             return;
         }
 
@@ -1540,13 +1550,13 @@ public class MainActivity extends AppCompatActivity {
         manualStop = false;
         botAutoRestartEnabled = true;
         botSupervisorActive = true;
-        String path = herokuPath();
-        startProcess("export HOME=/root PATH=" + path + "/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color PYTHONUNBUFFERED=1 HEROKUAPK=1 HEROKU_CUSTOM_INLINE_BOT='" + inlineBot + "' && cd " + path + " && " +
-            herokuApkPatchCommand() + " && " +
-            ".venv/bin/python -u -m heroku --no-web --root", true, false, true, "START BOT", true);
+        String path = userbotPath();
+        startProcess("export HOME=/root PATH=" + path + "/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color PYTHONUNBUFFERED=1 LEGACYAPK=1 LEGACY_CUSTOM_INLINE_BOT='" + inlineBot + "' && cd " + path + " && " +
+            legacyApkPatchCommand() + " && " +
+            ".venv/bin/python -u -m legacy --no-web --root", true, false, true, "START BOT", true);
     }
 
-    private String cleanupStaleHerokuCommand() {
+    private String cleanupStaleUserbotCommand() {
         return "if [ -x /usr/bin/python3 ]; then /usr/bin/python3 - <<'PY'\n" +
             "import os, signal, time\n" +
             "me = os.getpid()\n" +
@@ -1569,7 +1579,7 @@ public class MainActivity extends AppCompatActivity {
             "    except Exception:\n" +
             "        continue\n" +
             "    low = cmd.lower()\n" +
-            "    if 'python' in low and (' -m heroku' in low or 'heroku.__main__' in low):\n" +
+            "    if 'python' in low and (' -m legacy' in low or 'legacy.__main__' in low):\n" +
             "        targets.append(pid)\n" +
             "for sig in (signal.SIGTERM, signal.SIGKILL):\n" +
             "    for pid in targets:\n" +
@@ -1588,7 +1598,7 @@ public class MainActivity extends AppCompatActivity {
         if (followOutputBtn != null) followOutputBtn.setText("FOLLOW: ON");
         manualStop = false;
         botAutoRestartEnabled = false;
-        String path = herokuPath();
+        String path = userbotPath();
         String terminalName = selectedTerminalName();
         Process existing = terminalProcesses.get(terminalName);
         if (existing != null && existing.isAlive()) {
@@ -1644,221 +1654,29 @@ public class MainActivity extends AppCompatActivity {
         refreshProcessUiState();
     }
 
-    private String herokuApkPatchCommand() {
-        return "git checkout -- heroku/langpacks/*.yml 2>/dev/null || true; " +
+    private String legacyApkPatchCommand() {
+        return "git checkout -- legacy/langpacks/*.yml 2>/dev/null || true; " +
             "if [ ! -f " + PATCH_MARKER + " ]; then " +
-            hotfixInlineTokenCommand() + " >hotfix_inline.log 2>&1 && " +
-            hotfixInfoCommand() + " >hotfix_info.log 2>&1 && " +
-            hotfixPingCommand() + " >hotfix_ping.log 2>&1 && " +
             hotfixRestartCommand() + " >hotfix_restart.log 2>&1 && " +
             hotfixRestoreHelpPingCommand() + " >hotfix_restore_help_ping.log 2>&1 && " +
-            "echo developer patch skipped 2>&1 && " +
-            hotfixRatkoBrandCommand() + " >hotfix_ratko_brand.log 2>&1 && " +
             "touch " + PATCH_MARKER + "; fi";
     }
 
-    private String hotfixRatkoBrandCommand() {
-        return "cat > hotfix_ratko_brand.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "p = Path('heroku/modules/heroku_info.py')\n" +
-            "s = p.read_text().replace('herokuapk', 'ratkoapk')\n" +
-            "p.write_text(s)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_ratko_brand.py";
-    }
-
     private String hotfixRestoreHelpPingCommand() {
-        return "(git checkout -- heroku/modules/help.py heroku/modules/test.py 2>/dev/null || true)";
-    }
-
-    private String hotfixPingCommand() {
-        return "cat > hotfix_ping.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "p = Path('heroku/modules/heroku_info.py')\n" +
-            "s = p.read_text()\n" +
-            "marker = '    async def _render_info(self, start: float) -> str:'\n" +
-            "method = '    async def _herokuapk_ping(self, start: float) -> float:\\n        try:\\n            from herokutl.tl.functions.updates import GetStateRequest\\n            p0 = time.perf_counter()\\n            await self._client(GetStateRequest())\\n            return round((time.perf_counter() - p0) * 1000, 3)\\n        except Exception:\\n            return round((time.perf_counter_ns() - start) / 10**6, 3)\\n\\n'\n" +
-            "if 'async def _herokuapk_ping' not in s and marker in s:\n    s = s.replace(marker, method + marker)\n" +
-            "s = s.replace('\\\"ping\\\": round((time.perf_counter_ns() - start) / 10**6, 3),', '\\\"ping\\\": await self._herokuapk_ping(start),')\n" +
-            "p.write_text(s)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_ping.py";
-    }
-
-    private String hotfixDeveloperCommand() {
-        return "cat > hotfix_developer.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "init = Path('heroku/__init__.py')\n" +
-            "if init.exists():\n" +
-            "    s = init.read_text()\n" +
-            "    s = s.replace('__ForkAuthor__ = \"Codrago\"', '__ForkAuthor__ = \"@ziwupa\"')\n" +
-            "    s = s.replace('__maintainer__ = \"developer\"', '__maintainer__ = \"@ziwupa\"')\n" +
-            "    init.write_text(s)\n" +
-            "for path in Path('heroku/langpacks').glob('*.yml'):\n" +
-            "    lines = []\n" +
-            "    for line in path.read_text().splitlines():\n" +
-            "        if line.lstrip().startswith('ratko:'):\n" +
-            "            indent = line[:len(line) - len(line.lstrip())]\n" +
-            "            line = indent + 'ratko: \"{} <b>{}.{}.{}</b>\\\\n\\\\n<tg-emoji emoji-id=5310296284874159738>⚪️</tg-emoji> <b>Developer: <a href=\\\"https://t.me/ziwupa\\\">@ziwupa</a></b>\"'\n" +
-            "        lines.append(line)\n" +
-            "    path.write_text('\\n'.join(lines) + '\\n')\n" +
-            "settings = Path('heroku/modules/settings.py')\n" +
-            "s = settings.read_text()\n" +
-            "if 'async def herokucmd' not in s:\n" +
-            "    marker = '\\n    @loader.command()\\n    async def blacklist'\n" +
-            "    insert = '\\n    @loader.command()\\n    async def herokucmd(self, message: Message):\\n        await self.ratkocmd(message)\\n'\n" +
-            "    s = s.replace(marker, insert + marker)\n" +
-            "settings.write_text(s)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_developer.py";
-    }
-
-    private String hotfixInlineTokenCommand() {
-        return "cat > hotfix_inline.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "p = Path('heroku/inline/token_obtainment.py')\n" +
-            "s = p.read_text()\n" +
-            "hdrs = \"hdrs = inutils.headers.copy()\\n            hdrs.update({'x-aj-referer': 'https://webappinternal.telegram.org/botfather', 'x-requested-with': 'XMLHttpRequest'})\"\n" +
-            "s = s.replace('hdrs = self._get_bot_headers()', hdrs)\n" +
-            "s = s.replace('if bot_id:\\n            if revoke_token:', 'if bot_id:\\n            ' + hdrs + '\\n            if revoke_token:')\n" +
-            "mp = Path('heroku/main.py')\n" +
-            "m = mp.read_text()\n" +
-            "needle = 'existing = db.get(\"heroku.inline\", \"custom_bot\", False)\\n        except Exception:'\n" +
-            "old_insert = 'existing = db.get(\"heroku.inline\", \"custom_bot\", False)\\n            env_bot = os.environ.get(\"HEROKU_CUSTOM_INLINE_BOT\")\\n            if env_bot:\\n                db.set(\"heroku.inline\", \"custom_bot\", env_bot.strip().lstrip(\"@\"))\\n                db.set(\"heroku.inline\", \"bot_token\", None)\\n                existing = env_bot\\n        except Exception:'\n" +
-            "insert = 'existing = db.get(\"heroku.inline\", \"custom_bot\", False)\\n            env_bot = os.environ.get(\"HEROKU_CUSTOM_INLINE_BOT\")\\n            if env_bot:\\n                env_bot = env_bot.strip().lstrip(\"@\")\\n                if existing != env_bot:\\n                    db.set(\"heroku.inline\", \"custom_bot\", env_bot)\\n                    db.set(\"heroku.inline\", \"bot_token\", None)\\n                existing = env_bot\\n        except Exception:'\n" +
-            "m = m.replace(old_insert, insert)\n" +
-            "if needle in m and 'HEROKU_CUSTOM_INLINE_BOT' not in m:\n    m = m.replace(needle, insert)\n" +
-            "mp.write_text(m)\n" +
-            "p.write_text(s)\n" +
-            "cp = Path('heroku/inline/core.py')\n" +
-            "if cp.exists():\n" +
-            "    c = cp.read_text()\n" +
-            "    if 'if not ignore_token_checks and not self._token:' not in c:\n" +
-            "        c = c.replace('if not ignore_token_checks:', 'if not ignore_token_checks and not self._token:')\n" +
-            "    cp.write_text(c)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_inline.py";
-    }
-
-    private String hotfixInfoCommand() {
-        return "cat > hotfix_info.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "import re\n" +
-            "p = Path('heroku/modules/heroku_info.py')\n" +
-            "s = p.read_text()\n" +
-            "s = s.replace('platform = utils.get_named_platform()', 'platform = \\\"herokuapk\\\"')\n" +
-            "s = s.replace('platform_emoji = utils.get_named_platform_emoji()', 'platform_emoji = \\\"📱\\\"')\n" +
-            "marker = '        data = {\\n'\n" +
-            "helpers = '''        def _herokuapk_host_info():\\n            try:\\n                import json\\n                return json.loads(Path(\"/support/common/host_info.json\").read_text())\\n            except Exception:\\n                return {}\\n\\n        def _herokuapk_host_value(key, default):\\n            return _herokuapk_host_info().get(key, default)\\n\\n        def _herokuapk_safe_cpu_usage():\\n            try:\\n                return utils.get_cpu_usage()\\n            except Exception:\\n                return \"N/A\"\\n\\n        def _herokuapk_safe_ram_usage():\\n            try:\\n                return f\"{utils.get_ram_usage()} MB\"\\n            except Exception:\\n                return \"0 MB\"\\n\\n        def _herokuapk_safe_cpu():\\n            try:\\n                return _herokuapk_host_value(\"cpu\", \"N/A\")\\n            except Exception:\\n                return \"N/A\"\\n\\n'''\n" +
-            "if 'def _herokuapk_host_value' not in s and marker in s:\n    s = s.replace(marker, helpers + marker)\n" +
-            "s = s.replace('\\\"cpu_usage\\\": utils.get_cpu_usage(),', '\\\"cpu_usage\\\": _herokuapk_host_value(\"cpu_usage\", _herokuapk_safe_cpu_usage()),')\n" +
-            "s = s.replace('\\\"cpu_usage\\\": _herokuapk_safe_cpu_usage(),', '\\\"cpu_usage\\\": _herokuapk_host_value(\"cpu_usage\", _herokuapk_safe_cpu_usage()),')\n" +
-            "s = s.replace('\\\"ram_usage\\\": f\"{utils.get_ram_usage()} MB\",', '\\\"ram_usage\\\": _herokuapk_host_value(\"ram_usage\", _herokuapk_safe_ram_usage()),')\n" +
-            "s = s.replace('\\\"ram_usage\\\": _herokuapk_safe_ram_usage(),', '\\\"ram_usage\\\": _herokuapk_host_value(\"ram_usage\", _herokuapk_safe_ram_usage()),')\n" +
-            "s = s.replace('\\\"hostname\\\": lib_platform.node(),', '\\\"hostname\\\": _herokuapk_host_value(\"host\", \"herokuapk\"),')\n" +
-            "s = s.replace('\\\"hostname\\\": \"herokuapk\",', '\\\"hostname\\\": _herokuapk_host_value(\"host\", \"herokuapk\"),')\n" +
-            "s = s.replace('\\\"cpu\\\": f\"{psutil.cpu_count(logical=False)} ({psutil.cpu_count()}) core(-s); {psutil.cpu_percent()}% total\",', '\\\"cpu\\\": _herokuapk_host_value(\"cpu\", _herokuapk_safe_cpu()),')\n" +
-            "s = s.replace('\\\"cpu\\\": _herokuapk_safe_cpu(),', '\\\"cpu\\\": _herokuapk_host_value(\"cpu\", _herokuapk_safe_cpu()),')\n" +
-            "p.write_text(s)\n" +
-            "up = Path('heroku/utils/platform.py')\n" +
-            "u = up.read_text()\n" +
-            "helper = '\\n\\ndef _herokuapk_platform_host_info():\\n    try:\\n        import json\\n        return json.loads(open(\\\"/support/common/host_info.json\\\").read())\\n    except Exception:\\n        return {}\\n'\n" +
-            "u = u.replace('return json.loads(Path(\\\"/support/common/host_info.json\\\").read_text())', 'return json.loads(open(\\\"/support/common/host_info.json\\\").read())')\n" +
-            "if 'def _herokuapk_platform_host_info' not in u:\n    u += helper\n" +
-            "cpu_func = 'def get_cpu_usage():\\n    data = _herokuapk_platform_host_info()\\n    value = str(data.get(\\\"cpu_usage\\\", \\\"\\\")).replace(\\\"%\\\", \\\"\\\")\\n    if value and value != \\\"N/A\\\":\\n        return value\\n    return \\\"N/A\\\"\\n'\n" +
-            "ram_func = 'def get_ram_usage() -> float:\\n    data = _herokuapk_platform_host_info()\\n    value = str(data.get(\\\"ram_usage\\\", \\\"\\\")).replace(\\\" MB\\\", \\\"\\\")\\n    try:\\n        return round(float(value), 1)\\n    except Exception:\\n        return 0\\n'\n" +
-            "u = re.sub(r'def get_ram_usage\\(\\) -> float:.*?(?=\\n\\ndef get_cpu_usage)', ram_func, u, flags=re.S)\n" +
-            "u = re.sub(r'def get_cpu_usage\\(\\):.*?(?=\\n\\ninit_ts|\\n\\ndef get_ip_address|\\Z)', cpu_func, u, flags=re.S)\n" +
-            "up.write_text(u)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_info.py";
-    }
-
-    private String hotfixMetricsCommand() {
-        return "cat > hotfix_metrics.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "import re\n" +
-            "platform = Path('heroku/utils/platform.py')\n" +
-            "s = platform.read_text()\n" +
-            "ram_func = '''def get_ram_usage() -> float:\n    \"\"\"Returns current process tree memory usage in MB\"\"\"\n    try:\n        import psutil\n        current_process = psutil.Process(os.getpid())\n        mem = current_process.memory_info()[0] / 2.0**20\n        for child in current_process.children(recursive=True):\n            mem += child.memory_info()[0] / 2.0**20\n        return round(mem, 1)\n    except Exception:\n        return 0\n'''\n" +
-            "cpu_func = '''def get_cpu_usage():\n    try:\n        import psutil\n        current_process = psutil.Process(os.getpid())\n        cpu = current_process.cpu_percent(interval=0.1)\n        for child in current_process.children(recursive=True):\n            try:\n                cpu += child.cpu_percent(interval=0)\n            except Exception:\n                pass\n        return f\"{cpu:.2f}\"\n    except Exception:\n        return \"0.00\"\n'''\n" +
-            "s = re.sub(r'def get_ram_usage\\(\\) -> float:.*?(?=\\n\\ndef get_cpu_usage)', ram_func, s, flags=re.S)\n" +
-            "s = re.sub(r'def get_cpu_usage\\(\\):.*?(?=\\n\\ninit_ts|\\n\\ndef get_ip_address|\\Z)', cpu_func, s, flags=re.S)\n" +
-            "platform.write_text(s)\n" +
-            "info = Path('heroku/modules/heroku_info.py')\n" +
-            "t = info.read_text()\n" +
-            "t = t.replace('\"cpu_usage\": _herokuapk_host_value(\"cpu_usage\", _herokuapk_safe_cpu_usage()),', '\"cpu_usage\": _herokuapk_safe_cpu_usage(),')\n" +
-            "t = t.replace('\"ram_usage\": _herokuapk_host_value(\"ram_usage\", _herokuapk_safe_ram_usage()),', '\"ram_usage\": _herokuapk_safe_ram_usage(),')\n" +
-            "t = t.replace('\"cpu\": _herokuapk_host_value(\"cpu\", _herokuapk_safe_cpu()),', '\"cpu\": _herokuapk_safe_cpu(),')\n" +
-            "info.write_text(t)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_metrics.py";
+        return "(git checkout -- legacy/modules/help.py legacy/modules/test.py 2>/dev/null || true)";
     }
 
     private String hotfixRestartCommand() {
         return "cat > hotfix_restart.py <<'PY'\n" +
             "from pathlib import Path\n" +
-            "p = Path('heroku/_internal.py')\n" +
+            "p = Path('legacy/_internal.py')\n" +
             "s = p.read_text()\n" +
-            "needle = 'def restart():\\n    if \"--sandbox\" in \" \".join(sys.argv):\\n        exit(0)\\n'\n" +
-            "insert = 'def restart():\\n    if os.environ.get(\"HEROKUAPK\") == \"1\":\\n        logging.getLogger().setLevel(logging.CRITICAL)\\n        print(\"Restarting...\")\\n        os.execl(sys.executable, sys.executable, \"-m\", \"heroku\", *sys.argv[1:])\\n\\n    if \"--sandbox\" in \" \".join(sys.argv):\\n        exit(0)\\n'\n" +
-            "if 'os.environ.get(\"HEROKUAPK\") == \"1\"' not in s and needle in s:\n    s = s.replace(needle, insert)\n" +
+            "needle = 'def restart():\\n'\n" +
+            "insert = 'def restart():\\n    if os.environ.get(\"LEGACYAPK\") == \"1\":\\n        logging.getLogger().setLevel(logging.CRITICAL)\\n        print(\"Restarting...\")\\n        os.execl(sys.executable, sys.executable, \"-m\", \"legacy\", *sys.argv[1:])\\n\\n'\n" +
+            "if 'os.environ.get(\"LEGACYAPK\") == \"1\"' not in s and needle in s:\n    s = s.replace(needle, insert, 1)\n" +
             "p.write_text(s)\n" +
             "PY\n" +
             ".venv/bin/python hotfix_restart.py";
-    }
-
-    private String hotfixFinalCommand() {
-        return "cat > hotfix_final.py <<'PY'\n" +
-            "from pathlib import Path\n" +
-            "import re\n" +
-            "platform = Path('heroku/utils/platform.py')\n" +
-            "s = platform.read_text()\n" +
-            "ram_func = '''def get_ram_usage() -> float:\n    \"\"\"Returns current process tree memory usage in MB\"\"\"\n    try:\n        import psutil\n        current_process = psutil.Process(os.getpid())\n        mem = current_process.memory_info()[0] / 2.0**20\n        for child in current_process.children(recursive=True):\n            mem += child.memory_info()[0] / 2.0**20\n        return round(mem, 1)\n    except Exception:\n        return 0\n'''\n" +
-            "cpu_func = '''def get_cpu_usage():\n    try:\n        import psutil\n        current_process = psutil.Process(os.getpid())\n        cpu = current_process.cpu_percent(interval=0.1)\n        for child in current_process.children(recursive=True):\n            try:\n                cpu += child.cpu_percent(interval=0)\n            except Exception:\n                pass\n        return f\"{cpu:.2f}\"\n    except Exception:\n        return \"0.00\"\n'''\n" +
-            "s = re.sub(r'def get_ram_usage\\(\\) -> float:.*?(?=\\n\\ndef get_cpu_usage)', ram_func, s, flags=re.S)\n" +
-            "s = re.sub(r'def get_cpu_usage\\(\\):.*?(?=\\n\\ninit_ts|\\n\\ndef get_ip_address|\\Z)', cpu_func, s, flags=re.S)\n" +
-            "platform.write_text(s)\n" +
-            "info = Path('heroku/modules/heroku_info.py')\n" +
-            "t = info.read_text()\n" +
-            "t = t.replace('platform = utils.get_named_platform()', 'platform = \"herokuapk\"')\n" +
-            "t = t.replace('platform_emoji = utils.get_named_platform_emoji()', 'platform_emoji = \"📱\"')\n" +
-            "for old in [\n" +
-            "    '\"cpu_usage\": _herokuapk_host_value(\"cpu_usage\", _herokuapk_safe_cpu_usage()),',\n" +
-            "    '\"cpu_usage\": _herokuapk_safe_cpu_usage(),',\n" +
-            "]:\n    t = t.replace(old, '\"cpu_usage\": utils.get_cpu_usage(),')\n" +
-            "for old in [\n" +
-            "    '\"ram_usage\": _herokuapk_host_value(\"ram_usage\", _herokuapk_safe_ram_usage()),',\n" +
-            "    '\"ram_usage\": _herokuapk_safe_ram_usage(),',\n" +
-            "]:\n    t = t.replace(old, '\"ram_usage\": f\"{utils.get_ram_usage()} MB\",')\n" +
-            "for old in [\n" +
-            "    '\"cpu\": _herokuapk_host_value(\"cpu\", _herokuapk_safe_cpu()),',\n" +
-            "    '\"cpu\": _herokuapk_safe_cpu(),',\n" +
-            "    '\"cpu\": f\"{psutil.cpu_count(logical=False)} ({psutil.cpu_count()}) core(-s); {psutil.cpu_percent()}% total\",',\n" +
-            "]:\n    t = t.replace(old, '\"cpu\": f\"{psutil.cpu_count(logical=False) or psutil.cpu_count()} ({psutil.cpu_count()}) core(-s); {utils.get_cpu_usage()}% total\",')\n" +
-            "t = re.sub(r'\\\"ping\\\": .*?,', '\"ping\": getattr(self, \"_herokuapk_last_ping\", round((time.perf_counter_ns() - start) / 10**6, 3)),', t)\n" +
-            "needle = '        start = time.perf_counter_ns()\\n        banner_url, force_web_media = self._get_effective_banner()\\n'\n" +
-            "insert = '        start = time.perf_counter_ns()\\n        if \"{ping}\" in self._get_effective_info_template():\\n            ping_start = time.perf_counter_ns()\\n            try:\\n                message = await utils.answer(message, self.config[\"ping_emoji\"])\\n                self._herokuapk_last_ping = round((time.perf_counter_ns() - ping_start) / 10**6, 3)\\n            except Exception:\\n                self._herokuapk_last_ping = 0\\n        banner_url, force_web_media = self._get_effective_banner()\\n'\n" +
-            "if '_herokuapk_last_ping' not in t and needle in t:\n    t = t.replace(needle, insert)\n" +
-            "info.write_text(t)\n" +
-            "test = Path('heroku/modules/test.py')\n" +
-            "q = test.read_text()\n" +
-            "start_idx = q.find('    @loader.command()\\n    async def ping(')\n" +
-            "end_idx = q.find('    async def client_ready', start_idx)\n" +
-            "if start_idx != -1 and end_idx != -1:\n" +
-            "    simple_ping = '''    @loader.command()\n    async def ping(self, message: Message):\n        \"\"\"- Find out your userbot ping\"\"\"\n        start = time.perf_counter_ns()\n        msg = await utils.answer(message, self.config[\"ping_emoji\"])\n        ping = round((time.perf_counter_ns() - start) / 10**6, 3)\n        await utils.answer(msg, f\"<b>Ping:</b> <code>{ping}</code> ms\\n<b>Uptime:</b> <code>{utils.formatted_uptime()}</code>\")\n\n'''\n" +
-            "    q = q[:start_idx] + simple_ping + q[end_idx:]\n" +
-            "    test.write_text(q)\n" +
-            "help_file = Path('heroku/modules/help.py')\n" +
-            "h = help_file.read_text()\n" +
-            "start_idx = h.find('    @loader.command(\\n        ru_doc=\"[args] | Помощь')\n" +
-            "end_idx = h.find('    @loader.command(\\n        ru_doc=\"| Ссылка', start_idx)\n" +
-            "if start_idx != -1 and end_idx != -1:\n" +
-            "    simple_help = '''    @loader.command(\n        ru_doc=\"[args] | Помощь с вашими модулями!\",\n        ua_doc=\"[args] | допоможіть з вашими модулями!\",\n        de_doc=\"[args] | Hilfe mit deinen Modulen!\",\n    )\n    async def help(self, message: Message):\n        \"\"\"[args] | help with your modules!\"\"\"\n        args = utils.get_args_raw(message)\n        if args:\n            await self.modhelp(message, args)\n            return\n        lines = []\n        for mod in self.allmodules.modules:\n            if not getattr(mod, \"commands\", None):\n                continue\n            try:\n                name = mod.strings[\"name\"]\n            except Exception:\n                name = getattr(mod, \"name\", mod.__class__.__name__)\n            cmds = sorted(mod.commands.keys())\n            if cmds:\n                lines.append(f\"<b>{utils.escape_html(str(name))}</b>: <code>{'</code> <code>'.join(cmds)}</code>\")\n        text = \"<b>Heroku modules:</b>\\n\" + \"\\n\".join(lines)\n        await utils.answer(message, text[:3900])\n\n'''\n" +
-            "    h = h[:start_idx] + simple_help + h[end_idx:]\n" +
-            "    help_file.write_text(h)\n" +
-            "PY\n" +
-            ".venv/bin/python hotfix_final.py";
     }
 
     private void startProcess(String command, boolean interactive) {
@@ -1939,7 +1757,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void runCleanupBlocking() {
         try {
-            ProcessBuilder pb = new ProcessBuilder(prootCommand(cleanupStaleHerokuCommand()));
+            ProcessBuilder pb = new ProcessBuilder(prootCommand(cleanupStaleUserbotCommand()));
             pb.directory(baseDir);
             pb.environment().putAll(prootEnv());
             pb.redirectErrorStream(true);
@@ -2021,16 +1839,16 @@ public class MainActivity extends AppCompatActivity {
             log("[INFO] Process stopped");
             currentProcess = null;
         }
-        forceStopHerokuProcesses();
+        forceStopUserbotProcesses();
         refreshProcessUiState();
         releaseWakeLock();
     }
 
-    private void forceStopHerokuProcesses() {
+    private void forceStopUserbotProcesses() {
         new Thread(() -> {
             try {
                 if (!new File(supportDir, "proot").exists() || !new File(rootfsDir, "bin/sh").exists()) return;
-                ProcessBuilder pb = new ProcessBuilder(prootCommand(cleanupStaleHerokuCommand()));
+                ProcessBuilder pb = new ProcessBuilder(prootCommand(cleanupStaleUserbotCommand()));
                 pb.directory(baseDir);
                 pb.environment().putAll(prootEnv());
                 pb.redirectErrorStream(true);
@@ -2045,7 +1863,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void copyLogs() {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        clipboard.setPrimaryClip(ClipData.newPlainText("Ratko Host logs", logConsole.getText().toString()));
+        clipboard.setPrimaryClip(ClipData.newPlainText("Legacy Host logs", logConsole.getText().toString()));
         log("[INFO] Logs copied to clipboard");
     }
 

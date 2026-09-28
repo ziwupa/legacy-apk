@@ -29,7 +29,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="12dp"
-                android:text="RATKO HOST"
+                android:text="LEGACY HOST"
                 android:textColor="@color/zov_yellow"
                 android:textSize="26sp"
                 android:textStyle="bold"
@@ -48,7 +48,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Host panel for Linux, Ratko and long-running terminal sessions"
+                android:text="Host panel for Linux, Legacy and long-running terminal sessions"
                 android:textColor="@color/zov_white"
                 android:textSize="15sp"
                 android:fontFamily="sans-serif-medium" />
@@ -132,7 +132,7 @@
                     android:layout_width="0dp"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="2. Ratko" />
+                    android:text="2. Legacy" />
             </LinearLayout>
 
             <LinearLayout
@@ -336,7 +336,7 @@
                         style="@style/ZovButtonSoft"
                         android:layout_width="match_parent"
                         android:layout_marginTop="8dp"
-                        android:text="Update Ratko" />
+                        android:text="Update Legacy" />
 
                     <Button
                         android:id="@+id/reapplyPatchesBtn"
@@ -474,7 +474,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="This build is outdated. Install the latest APK to continue using Ratko Host."
+                android:text="This build is outdated. Install the latest APK to continue using Legacy Host."
                 android:textColor="@color/zov_white"
                 android:textSize="15sp"
                 android:gravity="center"

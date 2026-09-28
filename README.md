@@ -1,13 +1,13 @@
-# Ratko Host APK
+# Legacy Host APK
 
-Android mini-UserLAnd style installer for Ratko Userbot.
+Android mini-UserLAnd style installer for Legacy NewGen Userbot.
 
 ## Download
 
 APK is in the repository root:
 
 ```text
-RatkoHost-by-ziwupa-debug.apk
+LegacyHost-by-ziwupa-debug.apk
 ```
 
 Latest release download:
@@ -20,7 +20,7 @@ Features:
 
 - Downloads and extracts Ubuntu Base rootfs.
 - Uses bundled UserLAnd support assets (`proot`, `busybox`, loaders).
-- Button flow: `INSTALL LINUX`, `INSTALL RATKO`, `START BOT`.
+- Button flow: `INSTALL LINUX`, `INSTALL LEGACY`, `START BOT`.
 - Interactive terminal input through the bottom input field.
 - Selectable logs and `COPY LOGS` button.
 - Wake lock and battery optimization prompt for long installs.
@@ -42,5 +42,5 @@ app/build/outputs/apk/debug/app-debug.apk
 Copy APK to repo root after building:
 
 ```bash
-cp app/build/outputs/apk/debug/app-debug.apk RatkoHost-by-ziwupa-debug.apk
+cp app/build/outputs/apk/debug/app-debug.apk LegacyHost-by-ziwupa-debug.apk
 ```
