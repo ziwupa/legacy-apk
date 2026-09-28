@@ -123,18 +123,13 @@ public class MainActivity extends AppCompatActivity {
         logScroll = findViewById(R.id.logScroll);
         inputField = findViewById(R.id.inputField);
         final View inputBar = findViewById(R.id.inputBar);
-        final android.widget.LinearLayout.LayoutParams inputBarParams =
-            (android.widget.LinearLayout.LayoutParams) inputBar.getLayoutParams();
-        final int inputBarBaseMargin = inputBarParams.bottomMargin;
-        // Some devices don't shrink the layout for the keyboard despite
-        // adjustResize, leaving the input row underneath it. Lift the whole
-        // bar above the keyboard via bottom margin instead; when resize
-        // already worked the inset is zero and nothing changes.
+        // With adjustPan the system keeps the focused input on screen, but
+        // the log will not follow by itself: scroll it down whenever the
+        // keyboard opens so the latest terminal output stays visible.
         ViewCompat.setOnApplyWindowInsetsListener(inputBar, (v, insets) -> {
-            int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
-            inputBarParams.bottomMargin = inputBarBaseMargin + Math.max(imeBottom, 0);
-            inputBar.setLayoutParams(inputBarParams);
-            if (imeBottom > 0) scrollToBottomSoon();
+            if (insets.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0) {
+                scrollToBottomSoon();
+            }
             return insets;
         });
         followOutputBtn = findViewById(R.id.followOutputBtn);
