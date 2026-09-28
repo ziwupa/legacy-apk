@@ -25,6 +25,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -118,6 +120,23 @@ public class MainActivity extends AppCompatActivity {
         forceUpdateBodyText = findViewById(R.id.forceUpdateBodyText);
         logScroll = findViewById(R.id.logScroll);
         inputField = findViewById(R.id.inputField);
+        final View inputBar = findViewById(R.id.inputBar);
+        final int inputBarBaseBottom = inputBar.getPaddingBottom();
+        // Some devices don't shrink the layout for the keyboard despite
+        // adjustResize, leaving the input row underneath it. Lift the input
+        // bar by the visible IME height instead; when resize already worked
+        // the inset is zero and nothing changes.
+        ViewCompat.setOnApplyWindowInsetsListener(inputBar, (v, insets) -> {
+            int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+            v.setPadding(
+                v.getPaddingLeft(),
+                v.getPaddingTop(),
+                v.getPaddingRight(),
+                inputBarBaseBottom + Math.max(imeBottom, 0)
+            );
+            if (imeBottom > 0) scrollToBottomSoon();
+            return insets;
+        });
         followOutputBtn = findViewById(R.id.followOutputBtn);
         sessionSpinner = findViewById(R.id.sessionSpinner);
         terminalSpinner = findViewById(R.id.terminalSpinner);
